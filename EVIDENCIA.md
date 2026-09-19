@@ -177,6 +177,52 @@ Pull Requests (repositorio `Josuemart555/segundo-parcial-analisis-sistemas-2`):
 | [#2](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/2) | `feature/api-rest-citas` | API REST de citas/doctores/pacientes | RQF-01, RQF-06, RQF-07, RQF-08, RQNF-03 |
 | [#3](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/3) | `feature/validacion-conflictos-estados` | Conflictos de horario + estados | RQF-03, RQF-05, RQNF-03, RQNF-07 |
 | [#4](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/4) | `feature/fullcalendar-ui` | FullCalendar interactivo | RQF-02, RQF-04, RQF-09, RQF-10, RQNF-06 |
+| [#5](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/5) | `feature/editar-citas` | Edición completa de citas (paciente, doctor, horario, motivo) desde el calendario | RQF-01, RQF-03, RQNF-03, RQNF-07 |
 
-Las 4 ramas fueron fusionadas a `main` mediante Pull Request (merge commit),
+Las 5 ramas fueron fusionadas a `main` mediante Pull Request (merge commit),
 quedando el historial completo visible con `git log --graph --all`.
+
+## 6. Edición completa de citas (rama `feature/editar-citas`)
+
+El endpoint `PUT /api/citas/{id}` ya validaba conflictos de horario en el
+servidor excluyendo la propia cita; esta rama expone la edición completa
+(paciente, doctor, fecha/hora, motivo) desde el modal de detalle del
+calendario y exige los 5 campos en `UpdateCitaRequest` (antes `paciente_id`/
+`doctor_id` eran opcionales).
+
+### Evidencia (curl)
+
+```bash
+# Edición completa válida
+curl -s -w "\nHTTP %{http_code}\n" -X PUT http://localhost:8080/api/citas/1 \
+  -H "Content-Type: application/json" \
+  -d '{"paciente_id":2,"doctor_id":3,"fecha_inicio":"2026-09-28 08:00:00","fecha_fin":"2026-09-28 08:30:00","motivo":"Editado por prueba"}'
+# HTTP 200
+
+# Falta un campo requerido (paciente_id)
+curl -s -w "\nHTTP %{http_code}\n" -X PUT http://localhost:8080/api/citas/1 \
+  -H "Content-Type: application/json" \
+  -d '{"doctor_id":3,"fecha_inicio":"2026-09-28 08:00:00","fecha_fin":"2026-09-28 08:30:00","motivo":"Editado"}'
+# {"message":"The paciente id field is required.", ...}
+# HTTP 400
+
+# Edición hacia un horario que choca con otra cita activa del mismo doctor
+curl -s -w "\nHTTP %{http_code}\n" -X PUT http://localhost:8080/api/citas/1 \
+  -H "Content-Type: application/json" \
+  -d '{"paciente_id":1,"doctor_id":2,"fecha_inicio":"2026-09-20 10:30:00","fecha_fin":"2026-09-20 11:00:00","motivo":"Conflicto edicion"}'
+# {"message":"El doctor ya tiene una cita activa en ese horario."}
+# HTTP 409
+```
+
+### Evidencia (UI)
+
+Verificado manualmente en `http://localhost:8080/calendario`:
+
+- Detalle de la cita → botón "Editar" (oculto si el estado es terminal:
+  cancelada/atendida) → abre el modal "Editar cita" con paciente, doctor,
+  fecha/hora y motivo prellenados con los datos actuales.
+- Al guardar con datos válidos: `PUT /api/citas/{id}`, el modal se cierra
+  y el evento se actualiza en el calendario; confirmado también vía
+  `GET /api/citas/{id}` que el cambio persistió en MySQL.
+- Al guardar con un horario en conflicto: el modal permanece abierto y
+  muestra el mensaje de error inline (sin perder los datos ya escritos).

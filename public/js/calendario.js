@@ -19,12 +19,16 @@
 
     const modalCrear = document.getElementById('modal-crear');
     const modalDetalle = document.getElementById('modal-detalle');
+    const modalEditar = document.getElementById('modal-editar');
     const formCrear = document.getElementById('form-crear-cita');
+    const formEditar = document.getElementById('form-editar-cita');
     const errorCrear = document.getElementById('error-crear');
     const errorDetalle = document.getElementById('error-detalle');
+    const errorEditar = document.getElementById('error-editar');
     const filtroDoctor = document.getElementById('filtro-doctor');
+    const btnAbrirEditar = document.getElementById('btn-abrir-editar');
 
-    let citaSeleccionadaId = null;
+    let citaSeleccionada = null;
     let calendar;
 
     function abrirModal(modal) {
@@ -78,6 +82,8 @@
         llenarSelect(filtroDoctor, doctores, (d) => d.id, (d) => d.nombre, true);
         llenarSelect(formCrear.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad})`, false);
         llenarSelect(formCrear.paciente_id, pacientes, (p) => p.id, (p) => `${p.nombre} - ${p.documento}`, false);
+        llenarSelect(formEditar.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad})`, false);
+        llenarSelect(formEditar.paciente_id, pacientes, (p) => p.id, (p) => `${p.nombre} - ${p.documento}`, false);
     }
 
     function formatearFechaHora(iso) {
@@ -86,7 +92,7 @@
     }
 
     function abrirDetalle(cita) {
-        citaSeleccionadaId = cita.id;
+        citaSeleccionada = cita;
         document.getElementById('detalle-paciente').textContent = cita.paciente?.nombre ?? '—';
         document.getElementById('detalle-doctor').textContent = cita.doctor?.nombre ?? '—';
         document.getElementById('detalle-horario').textContent =
@@ -99,6 +105,7 @@
         document.querySelectorAll('#modal-detalle [data-estado]').forEach((btn) => {
             btn.hidden = esTerminal || btn.dataset.estado === cita.estado;
         });
+        btnAbrirEditar.hidden = esTerminal;
 
         abrirModal(modalDetalle);
     }
@@ -107,7 +114,7 @@
         btn.addEventListener('click', async () => {
             errorDetalle.textContent = '';
             const { ok, status, body } = await peticionJSON(
-                `${API_BASE}/citas/${citaSeleccionadaId}/estado`,
+                `${API_BASE}/citas/${citaSeleccionada.id}/estado`,
                 { method: 'PATCH', body: JSON.stringify({ estado: btn.dataset.estado }) }
             );
 
@@ -121,10 +128,43 @@
         });
     });
 
-    function toDatetimeLocal(date) {
+    function toDatetimeLocal(iso) {
+        const date = new Date(iso);
         const pad = (n) => String(n).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
+
+    btnAbrirEditar.addEventListener('click', () => {
+        errorEditar.textContent = '';
+        formEditar.paciente_id.value = citaSeleccionada.paciente_id;
+        formEditar.doctor_id.value = citaSeleccionada.doctor_id;
+        formEditar.fecha_inicio.value = toDatetimeLocal(citaSeleccionada.fecha_inicio);
+        formEditar.fecha_fin.value = toDatetimeLocal(citaSeleccionada.fecha_fin);
+        formEditar.motivo.value = citaSeleccionada.motivo;
+
+        cerrarModal(modalDetalle);
+        abrirModal(modalEditar);
+    });
+
+    formEditar.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        errorEditar.textContent = '';
+
+        const datos = Object.fromEntries(new FormData(formEditar).entries());
+
+        const { ok, body } = await peticionJSON(`${API_BASE}/citas/${citaSeleccionada.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(datos),
+        });
+
+        if (!ok) {
+            errorEditar.textContent = body.message || 'No se pudo actualizar la cita.';
+            return;
+        }
+
+        cerrarModal(modalEditar);
+        calendar.refetchEvents();
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
         await cargarDoctoresYPacientes();
@@ -188,6 +228,9 @@
                 const { ok, body } = await peticionJSON(`${API_BASE}/citas/${cita.id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
+                        paciente_id: cita.paciente_id,
+                        doctor_id: cita.doctor_id,
+                        motivo: cita.motivo,
                         fecha_inicio: info.event.startStr,
                         fecha_fin: info.event.endStr || info.event.startStr,
                     }),
@@ -207,6 +250,9 @@
                 const { ok, body } = await peticionJSON(`${API_BASE}/citas/${cita.id}`, {
                     method: 'PUT',
                     body: JSON.stringify({
+                        paciente_id: cita.paciente_id,
+                        doctor_id: cita.doctor_id,
+                        motivo: cita.motivo,
                         fecha_inicio: info.event.startStr,
                         fecha_fin: info.event.endStr,
                     }),
