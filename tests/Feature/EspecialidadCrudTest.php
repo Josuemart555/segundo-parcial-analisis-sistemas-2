@@ -46,4 +46,20 @@ class EspecialidadCrudTest extends TestCase
         $response->assertSessionHasErrors('nombre');
         $this->assertSame(1, Especialidad::where('nombre', 'Cardiología')->count());
     }
+
+    public function test_un_admin_puede_editar_y_actualizar_una_especialidad(): void
+    {
+        $especialidad = Especialidad::create(['nombre' => 'Cardiología', 'activa' => true]);
+
+        $edit = $this->actingAs($this->admin)->get(route('especialidades.edit', $especialidad));
+        $edit->assertOk();
+
+        $update = $this->actingAs($this->admin)->put(route('especialidades.update', $especialidad), [
+            'nombre' => 'Cardiología Pediátrica',
+            'activa' => '1',
+        ]);
+
+        $update->assertRedirect(route('especialidades.index'));
+        $this->assertDatabaseHas('especialidades', ['id' => $especialidad->id, 'nombre' => 'Cardiología Pediátrica']);
+    }
 }

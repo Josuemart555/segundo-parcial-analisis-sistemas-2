@@ -22,8 +22,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::middleware('role:admin')->group(function () {
-        Route::resource('especialidades', EspecialidadController::class)->except(['show']);
-        Route::resource('estados-cita', EstadoCitaController::class)->except(['show']);
+        Route::resource('especialidades', EspecialidadController::class)
+            ->except(['show'])
+            ->parameters(['especialidades' => 'especialidad']);
+        Route::resource('estados-cita', EstadoCitaController::class)
+            ->except(['show'])
+            ->parameters(['estados-cita' => 'estado_cita']);
         Route::resource('usuarios', UserController::class)->except(['show']);
     });
 });
