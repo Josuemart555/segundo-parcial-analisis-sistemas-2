@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CambiarEstadoCitaRequest;
 use App\Http\Requests\StoreCitaRequest;
 use App\Http\Requests\UpdateCitaRequest;
 use App\Http\Resources\CitaResource;
@@ -44,6 +45,13 @@ class CitaController extends Controller
     public function update(UpdateCitaRequest $request, Cita $cita): CitaResource
     {
         $cita = $this->citaService->reprogramar($cita, $request->validated());
+
+        return new CitaResource($cita);
+    }
+
+    public function cambiarEstado(CambiarEstadoCitaRequest $request, Cita $cita): CitaResource
+    {
+        $cita = $this->citaService->cambiarEstado($cita, $request->validated('estado'));
 
         return new CitaResource($cita);
     }
