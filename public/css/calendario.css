@@ -1,0 +1,181 @@
+:root {
+    --color-pendiente: #f59e0b;
+    --color-confirmada: #2563eb;
+    --color-cancelada: #6b7280;
+    --color-atendida: #16a34a;
+    --color-bg: #f8fafc;
+    --color-texto: #1f2937;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-texto);
+}
+
+.his-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #111827;
+    color: #fff;
+}
+
+.his-header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.his-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.his-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.his-badge--pendiente { background: var(--color-pendiente); }
+.his-badge--confirmada { background: var(--color-confirmada); }
+.his-badge--cancelada { background: var(--color-cancelada); }
+.his-badge--atendida { background: var(--color-atendida); }
+
+.his-main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px;
+}
+
+.his-filtros {
+    margin-bottom: 16px;
+}
+
+.his-filtros select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+#calendario {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.his-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+}
+
+.his-modal[hidden] {
+    display: none;
+}
+
+.his-modal__contenido {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.his-modal__contenido h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+.his-modal__contenido form label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.his-modal__contenido input,
+.his-modal__contenido select {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.9rem;
+}
+
+.his-modal__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.his-modal__acciones--estado {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}
+
+.his-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.his-btn--primario { background: var(--color-confirmada); color: #fff; }
+.his-btn--secundario { background: #e2e8f0; color: #111827; }
+.his-btn--confirmar { background: var(--color-confirmada); color: #fff; }
+.his-btn--atender { background: var(--color-atendida); color: #fff; }
+.his-btn--cancelar { background: #dc2626; color: #fff; }
+
+.his-modal__error {
+    color: #dc2626;
+    font-size: 0.8rem;
+    min-height: 1em;
+}
+
+.his-detalle {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    font-size: 0.9rem;
+}
+
+.his-detalle dt {
+    font-weight: 600;
+    color: #475569;
+}
+
+.his-detalle dd {
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .his-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
