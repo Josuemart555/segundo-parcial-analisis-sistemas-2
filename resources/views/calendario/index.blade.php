@@ -11,13 +11,22 @@
 </head>
 <body>
     <header class="his-header">
-        <h1>HIS &mdash; Control de Citas Médicas</h1>
-        <div class="his-leyenda">
-            <span class="his-badge his-badge--pendiente">Pendiente</span>
-            <span class="his-badge his-badge--confirmada">Confirmada</span>
-            <span class="his-badge his-badge--cancelada">Cancelada</span>
-            <span class="his-badge his-badge--atendida">Atendida</span>
+        <div class="his-header__marca">
+            <h1>HIS &mdash; Control de Citas Médicas</h1>
+            <nav class="his-nav">
+                @role('admin')
+                    <a href="{{ route('especialidades.index') }}">Especialidades</a>
+                    <a href="{{ route('estados-cita.index') }}">Estados</a>
+                    <a href="{{ route('usuarios.index') }}">Usuarios</a>
+                @endrole
+                <span class="his-nav__usuario">{{ auth()->user()->name }}</span>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="his-nav__logout">Cerrar sesión</button>
+                </form>
+            </nav>
         </div>
+        <div class="his-leyenda" id="leyenda-estados"></div>
     </header>
 
     <main class="his-main">
@@ -74,11 +83,7 @@
                 <dt>Estado</dt><dd id="detalle-estado"></dd>
             </dl>
             <p class="his-modal__error" id="error-detalle"></p>
-            <div class="his-modal__acciones his-modal__acciones--estado">
-                <button type="button" class="his-btn his-btn--confirmar" data-estado="confirmada">Confirmar</button>
-                <button type="button" class="his-btn his-btn--atender" data-estado="atendida">Marcar atendida</button>
-                <button type="button" class="his-btn his-btn--cancelar" data-estado="cancelada">Cancelar cita</button>
-            </div>
+            <div class="his-modal__acciones his-modal__acciones--estado" id="acciones-estado"></div>
             <div class="his-modal__acciones">
                 <button type="button" class="his-btn his-btn--primario" id="btn-abrir-editar">Editar</button>
                 <button type="button" class="his-btn his-btn--secundario" data-cerrar-modal="modal-detalle">Cerrar</button>

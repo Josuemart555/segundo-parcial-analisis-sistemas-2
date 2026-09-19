@@ -29,9 +29,52 @@ body {
     color: #fff;
 }
 
+.his-header__marca {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+}
+
 .his-header h1 {
     font-size: 1.25rem;
     margin: 0;
+}
+
+.his-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.his-nav a {
+    color: #cbd5e1;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.his-nav a:hover {
+    color: #fff;
+}
+
+.his-nav__usuario {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.his-nav__logout {
+    background: none;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.his-nav__logout:hover {
+    color: #fff;
+    border-color: #94a3b8;
 }
 
 .his-leyenda {
