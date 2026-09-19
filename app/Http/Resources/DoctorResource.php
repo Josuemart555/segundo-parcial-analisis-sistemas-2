@@ -11,8 +11,8 @@ class DoctorResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nombre' => $this->nombre,
-            'especialidad' => $this->especialidad,
+            'nombre' => $this->name,
+            'especialidad' => $this->whenLoaded('especialidad', fn () => $this->especialidad?->nombre),
             'telefono' => $this->telefono,
             'email' => $this->email,
             'activo' => $this->activo,

@@ -32,14 +32,14 @@ class CitaController extends Controller
     {
         $cita = $this->citaService->crear($request->validated());
 
-        return (new CitaResource($cita->load(['doctor', 'paciente'])))
+        return (new CitaResource($cita->load(['doctor.especialidad', 'paciente', 'estadoCita'])))
             ->response()
             ->setStatusCode(201);
     }
 
     public function show(Cita $cita): CitaResource
     {
-        return new CitaResource($cita->load(['doctor', 'paciente']));
+        return new CitaResource($cita->load(['doctor.especialidad', 'paciente', 'estadoCita']));
     }
 
     public function update(UpdateCitaRequest $request, Cita $cita): CitaResource
