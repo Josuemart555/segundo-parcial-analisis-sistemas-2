@@ -80,8 +80,38 @@
                 <button type="button" class="his-btn his-btn--cancelar" data-estado="cancelada">Cancelar cita</button>
             </div>
             <div class="his-modal__acciones">
+                <button type="button" class="his-btn his-btn--primario" id="btn-abrir-editar">Editar</button>
                 <button type="button" class="his-btn his-btn--secundario" data-cerrar-modal="modal-detalle">Cerrar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: editar cita -->
+    <div id="modal-editar" class="his-modal" hidden>
+        <div class="his-modal__contenido">
+            <h2>Editar cita</h2>
+            <form id="form-editar-cita">
+                <label>Paciente
+                    <select name="paciente_id" required></select>
+                </label>
+                <label>Doctor
+                    <select name="doctor_id" required></select>
+                </label>
+                <label>Fecha y hora inicio
+                    <input type="datetime-local" name="fecha_inicio" required>
+                </label>
+                <label>Fecha y hora fin
+                    <input type="datetime-local" name="fecha_fin" required>
+                </label>
+                <label>Motivo
+                    <input type="text" name="motivo" maxlength="255" required>
+                </label>
+                <p class="his-modal__error" id="error-editar"></p>
+                <div class="his-modal__acciones">
+                    <button type="button" class="his-btn his-btn--secundario" data-cerrar-modal="modal-editar">Cancelar</button>
+                    <button type="submit" class="his-btn his-btn--primario">Guardar cambios</button>
+                </div>
+            </form>
         </div>
     </div>
 
