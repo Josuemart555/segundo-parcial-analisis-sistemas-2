@@ -178,9 +178,51 @@ Pull Requests (repositorio `Josuemart555/segundo-parcial-analisis-sistemas-2`):
 | [#3](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/3) | `feature/validacion-conflictos-estados` | Conflictos de horario + estados | RQF-03, RQF-05, RQNF-03, RQNF-07 |
 | [#4](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/4) | `feature/fullcalendar-ui` | FullCalendar interactivo | RQF-02, RQF-04, RQF-09, RQF-10, RQNF-06 |
 | [#5](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/5) | `feature/editar-citas` | Edición completa de citas (paciente, doctor, horario, motivo) desde el calendario | RQF-01, RQF-03, RQNF-03, RQNF-07 |
+| [#6](https://github.com/Josuemart555/segundo-parcial-analisis-sistemas-2/pull/6) | `feature/usuarios-roles-permisos` | Login (Breeze), roles/permisos (spatie), Doctor fusionado en User, CRUD de especialidades/estados de cita/usuarios | RQF-01, RQF-03, RQF-07, RQNF-03, RQNF-04, RQNF-05, RQNF-07 |
 
-Las 5 ramas fueron fusionadas a `main` mediante Pull Request (merge commit),
+Las 6 ramas fueron fusionadas a `main` mediante Pull Request (merge commit),
 quedando el historial completo visible con `git log --graph --all`.
+
+## 7. Login, roles/permisos y CRUDs de administración (rama `feature/usuarios-roles-permisos`)
+
+- Login con Laravel Breeze (Blade) + Sanctum stateful; todo el sistema
+  (calendario, API, CRUDs) requiere sesión iniciada.
+- Roles con `spatie/laravel-permission`: `admin`, `recepcionista`, `doctor`.
+- `Doctor` fusionado dentro de `User` (rol `doctor` + `especialidad_id`);
+  se eliminó la tabla `doctores`.
+- CRUD de especialidades (antes texto libre) y de estados de cita (antes
+  un enum fijo en código, ahora con color/`es_terminal`/`bloquea_horario`
+  administrables).
+- CRUD de usuarios con asignación de rol y, si es doctor, especialidad.
+- El calendario construye su leyenda y los botones de cambio de estado
+  dinámicamente desde `GET /api/estados-cita`.
+
+### Evidencia
+
+```bash
+# Sin sesión, /calendario redirige a login
+curl -sI http://localhost:8080/calendario | head -1
+# HTTP/1.1 302 Found
+
+# Conflicto de horario con el nuevo esquema (users + estados_cita)
+POST /api/citas  (doctor válido, horario libre)   -> HTTP 201, "estado":"pendiente"
+POST /api/citas  (mismo doctor, horario solapado) -> HTTP 409
+POST /api/citas  (doctor_id de un usuario admin)  -> HTTP 400 "The selected doctor id is invalid."
+
+# Usuario sin rol admin
+GET /usuarios -> 403 Forbidden
+
+# Tests automatizados (sqlite en memoria, nunca contra la MySQL de Docker)
+docker compose exec app php artisan test
+# Tests: 31 passed (71 assertions)
+```
+
+Verificado en el navegador: login como `admin@his.test` / `password`
+(ve Calendario + Especialidades + Estados + Usuarios), y como
+`carlos.perez@his.test` / `password` (rol doctor, solo ve Calendario y
+recibe 403 en `/usuarios`). Se creó una especialidad, un estado de cita
+y un usuario con rol doctor desde sus respectivos CRUDs, confirmando que
+el nuevo doctor aparece de inmediato en el selector del calendario.
 
 ## 6. Edición completa de citas (rama `feature/editar-citas`)
 
