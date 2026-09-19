@@ -5,25 +5,15 @@ namespace App\Services;
 use App\Exceptions\CitaConflictoException;
 use App\Exceptions\TransicionEstadoInvalidaException;
 use App\Models\Cita;
+use App\Models\EstadoCita;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CitaService
 {
-    /**
-     * Transiciones de estado permitidas. Cancelada y atendida son estados
-     * terminales: una vez alcanzados, la cita no puede volver a moverse.
-     */
-    private const TRANSICIONES_PERMITIDAS = [
-        Cita::ESTADO_PENDIENTE => [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_CANCELADA, Cita::ESTADO_ATENDIDA],
-        Cita::ESTADO_CONFIRMADA => [Cita::ESTADO_CANCELADA, Cita::ESTADO_ATENDIDA],
-        Cita::ESTADO_CANCELADA => [],
-        Cita::ESTADO_ATENDIDA => [],
-    ];
-
     public function listar(array $filtros): Collection
     {
-        $query = Cita::query()->with(['doctor', 'paciente']);
+        $query = Cita::query()->with(['doctor.especialidad', 'paciente', 'estadoCita']);
 
         if (! empty($filtros['doctor_id'])) {
             $query->where('doctor_id', $filtros['doctor_id']);
@@ -59,7 +49,7 @@ class CitaService
                 'fecha_inicio' => $datos['fecha_inicio'],
                 'fecha_fin' => $datos['fecha_fin'],
                 'motivo' => $datos['motivo'],
-                'estado' => Cita::ESTADO_PENDIENTE,
+                'estado_cita_id' => $this->estadoInicial()->id,
             ]);
         });
     }
@@ -85,29 +75,37 @@ class CitaService
             ]);
             $cita->save();
 
-            return $cita->fresh(['doctor', 'paciente']);
+            return $cita->fresh(['doctor.especialidad', 'paciente', 'estadoCita']);
         });
     }
 
-    public function cambiarEstado(Cita $cita, string $nuevoEstado): Cita
+    public function cambiarEstado(Cita $cita, string $nuevoEstadoSlug): Cita
     {
-        $permitidas = self::TRANSICIONES_PERMITIDAS[$cita->estado] ?? [];
+        $cita->loadMissing('estadoCita');
+        $nuevoEstado = EstadoCita::where('slug', $nuevoEstadoSlug)->firstOrFail();
 
-        if ($cita->estado !== $nuevoEstado && ! in_array($nuevoEstado, $permitidas, true)) {
+        if ($cita->estadoCita->es_terminal && $cita->estadoCita->id !== $nuevoEstado->id) {
             throw new TransicionEstadoInvalidaException(
-                "No se puede cambiar la cita de estado '{$cita->estado}' a '{$nuevoEstado}'."
+                "No se puede cambiar la cita de estado '{$cita->estadoCita->slug}' a '{$nuevoEstado->slug}'."
             );
         }
 
-        $cita->estado = $nuevoEstado;
+        $cita->estado_cita_id = $nuevoEstado->id;
         $cita->save();
 
-        return $cita->fresh(['doctor', 'paciente']);
+        return $cita->fresh(['doctor.especialidad', 'paciente', 'estadoCita']);
+    }
+
+    private function estadoInicial(): EstadoCita
+    {
+        return EstadoCita::where('slug', 'pendiente')->firstOrFail();
     }
 
     /**
      * Valida en el servidor que el doctor no tenga otra cita activa que se
-     * solape con el rango de horario solicitado (RQF-03, RQNF-07).
+     * solape con el rango de horario solicitado (RQF-03, RQNF-07). Un
+     * estado con `bloquea_horario = false` (p. ej. cancelada) libera el
+     * horario para nuevas citas.
      */
     private function verificarDisponibilidad(
         int $doctorId,
@@ -117,7 +115,7 @@ class CitaService
     ): void {
         $query = Cita::query()
             ->where('doctor_id', $doctorId)
-            ->where('estado', '!=', Cita::ESTADO_CANCELADA)
+            ->whereHas('estadoCita', fn ($q) => $q->where('bloquea_horario', true))
             ->where('fecha_inicio', '<', $fechaFin)
             ->where('fecha_fin', '>', $fechaInicio);
 

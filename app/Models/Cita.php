@@ -10,25 +10,13 @@ class Cita extends Model
 {
     use HasFactory;
 
-    public const ESTADO_PENDIENTE = 'pendiente';
-    public const ESTADO_CONFIRMADA = 'confirmada';
-    public const ESTADO_CANCELADA = 'cancelada';
-    public const ESTADO_ATENDIDA = 'atendida';
-
-    public const ESTADOS = [
-        self::ESTADO_PENDIENTE,
-        self::ESTADO_CONFIRMADA,
-        self::ESTADO_CANCELADA,
-        self::ESTADO_ATENDIDA,
-    ];
-
     protected $fillable = [
         'paciente_id',
         'doctor_id',
         'fecha_inicio',
         'fecha_fin',
         'motivo',
-        'estado',
+        'estado_cita_id',
     ];
 
     protected $casts = [
@@ -43,6 +31,11 @@ class Cita extends Model
 
     public function doctor(): BelongsTo
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(User::class, 'doctor_id');
+    }
+
+    public function estadoCita(): BelongsTo
+    {
+        return $this->belongsTo(EstadoCita::class, 'estado_cita_id');
     }
 }

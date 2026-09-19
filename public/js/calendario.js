@@ -3,19 +3,8 @@
 
     const API_BASE = '/api';
 
-    const ESTADO_COLOR = {
-        pendiente: '#f59e0b',
-        confirmada: '#2563eb',
-        cancelada: '#6b7280',
-        atendida: '#16a34a',
-    };
-
-    const ESTADO_LABEL = {
-        pendiente: 'Pendiente',
-        confirmada: 'Confirmada',
-        cancelada: 'Cancelada',
-        atendida: 'Atendida',
-    };
+    let estados = [];
+    let estadosPorSlug = {};
 
     const modalCrear = document.getElementById('modal-crear');
     const modalDetalle = document.getElementById('modal-detalle');
@@ -27,6 +16,8 @@
     const errorEditar = document.getElementById('error-editar');
     const filtroDoctor = document.getElementById('filtro-doctor');
     const btnAbrirEditar = document.getElementById('btn-abrir-editar');
+    const leyendaEstados = document.getElementById('leyenda-estados');
+    const accionesEstado = document.getElementById('acciones-estado');
 
     let citaSeleccionada = null;
     let calendar;
@@ -70,25 +61,79 @@
         });
     }
 
-    async function cargarDoctoresYPacientes() {
-        const [doctoresRes, pacientesRes] = await Promise.all([
+    async function cargarDatosIniciales() {
+        const [doctoresRes, pacientesRes, estadosRes] = await Promise.all([
             peticionJSON(`${API_BASE}/doctores`),
             peticionJSON(`${API_BASE}/pacientes`),
+            peticionJSON(`${API_BASE}/estados-cita`),
         ]);
 
         const doctores = doctoresRes.body.data || [];
         const pacientes = pacientesRes.body.data || [];
+        estados = estadosRes.body.data || [];
+        estadosPorSlug = Object.fromEntries(estados.map((e) => [e.slug, e]));
 
         llenarSelect(filtroDoctor, doctores, (d) => d.id, (d) => d.nombre, true);
-        llenarSelect(formCrear.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad})`, false);
+        llenarSelect(formCrear.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad ?? 'Sin especialidad'})`, false);
         llenarSelect(formCrear.paciente_id, pacientes, (p) => p.id, (p) => `${p.nombre} - ${p.documento}`, false);
-        llenarSelect(formEditar.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad})`, false);
+        llenarSelect(formEditar.doctor_id, doctores, (d) => d.id, (d) => `${d.nombre} (${d.especialidad ?? 'Sin especialidad'})`, false);
         llenarSelect(formEditar.paciente_id, pacientes, (p) => p.id, (p) => `${p.nombre} - ${p.documento}`, false);
+
+        renderLeyenda();
+    }
+
+    function renderLeyenda() {
+        leyendaEstados.innerHTML = '';
+        estados.forEach((estado) => {
+            const badge = document.createElement('span');
+            badge.className = 'his-badge';
+            badge.style.background = estado.color;
+            badge.textContent = estado.nombre;
+            leyendaEstados.appendChild(badge);
+        });
     }
 
     function formatearFechaHora(iso) {
         const fecha = new Date(iso);
         return fecha.toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function renderAccionesEstado(cita) {
+        accionesEstado.innerHTML = '';
+        const estadoActual = estadosPorSlug[cita.estado];
+
+        if (!estadoActual || estadoActual.es_terminal) {
+            return;
+        }
+
+        estados
+            .filter((estado) => estado.slug !== cita.estado)
+            .forEach((estado) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'his-btn';
+                btn.style.background = estado.color;
+                btn.style.color = '#fff';
+                btn.textContent = `Marcar como ${estado.nombre}`;
+                btn.addEventListener('click', () => cambiarEstado(estado.slug));
+                accionesEstado.appendChild(btn);
+            });
+    }
+
+    async function cambiarEstado(nuevoEstadoSlug) {
+        errorDetalle.textContent = '';
+        const { ok, status, body } = await peticionJSON(
+            `${API_BASE}/citas/${citaSeleccionada.id}/estado`,
+            { method: 'PATCH', body: JSON.stringify({ estado: nuevoEstadoSlug }) }
+        );
+
+        if (!ok) {
+            errorDetalle.textContent = body.message || `Error ${status} al cambiar el estado.`;
+            return;
+        }
+
+        cerrarModal(modalDetalle);
+        calendar.refetchEvents();
     }
 
     function abrirDetalle(cita) {
@@ -98,35 +143,15 @@
         document.getElementById('detalle-horario').textContent =
             `${formatearFechaHora(cita.fecha_inicio)} — ${formatearFechaHora(cita.fecha_fin)}`;
         document.getElementById('detalle-motivo').textContent = cita.motivo;
-        document.getElementById('detalle-estado').textContent = ESTADO_LABEL[cita.estado] ?? cita.estado;
+        document.getElementById('detalle-estado').textContent = estadosPorSlug[cita.estado]?.nombre ?? cita.estado;
         errorDetalle.textContent = '';
 
-        const esTerminal = cita.estado === 'cancelada' || cita.estado === 'atendida';
-        document.querySelectorAll('#modal-detalle [data-estado]').forEach((btn) => {
-            btn.hidden = esTerminal || btn.dataset.estado === cita.estado;
-        });
+        const esTerminal = estadosPorSlug[cita.estado]?.es_terminal ?? false;
+        renderAccionesEstado(cita);
         btnAbrirEditar.hidden = esTerminal;
 
         abrirModal(modalDetalle);
     }
-
-    document.querySelectorAll('#modal-detalle [data-estado]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-            errorDetalle.textContent = '';
-            const { ok, status, body } = await peticionJSON(
-                `${API_BASE}/citas/${citaSeleccionada.id}/estado`,
-                { method: 'PATCH', body: JSON.stringify({ estado: btn.dataset.estado }) }
-            );
-
-            if (!ok) {
-                errorDetalle.textContent = body.message || `Error ${status} al cambiar el estado.`;
-                return;
-            }
-
-            cerrarModal(modalDetalle);
-            calendar.refetchEvents();
-        });
-    });
 
     function toDatetimeLocal(iso) {
         const date = new Date(iso);
@@ -167,7 +192,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
-        await cargarDoctoresYPacientes();
+        await cargarDatosIniciales();
 
         const calendarEl = document.getElementById('calendario');
         calendar = new FullCalendar.Calendar(calendarEl, {
@@ -202,7 +227,7 @@
                     title: `${cita.paciente?.nombre ?? 'Paciente'} · ${cita.doctor?.nombre ?? 'Doctor'}`,
                     start: cita.fecha_inicio,
                     end: cita.fecha_fin,
-                    color: ESTADO_COLOR[cita.estado] ?? '#94a3b8',
+                    color: cita.estado_color || estadosPorSlug[cita.estado]?.color || '#94a3b8',
                     extendedProps: { cita },
                 }));
 
